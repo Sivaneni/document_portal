@@ -1,0 +1,10 @@
+
+(27/07/2025)  4-37 PM About session management
+
+The purpose of maintaining a session in this code is to organize and isolate user or process activities. Each session gets a unique directory (using a timestamp and UUID), so:
+
+Files from different users or runs don’t overwrite each other.
+You can track, audit, or debug actions for a specific session.
+It’s easier to clean up or archive data related to a particular session.
+Session-based organization supports multi-user or multi-process workflows.
+This approach improves data management, traceability, and reliability in document handling.
