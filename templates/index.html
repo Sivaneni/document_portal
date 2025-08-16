@@ -156,98 +156,154 @@
   </footer>
 
   <script>
-    // Tab switching
-    const tabs = document.querySelectorAll(".tab-btn");
-    const panels = document.querySelectorAll(".tab-panel");
-    tabs.forEach(btn => {
-      btn.addEventListener("click", () => {
-        tabs.forEach(b => b.classList.remove("active"));
-        panels.forEach(p => p.classList.remove("active"));
-        btn.classList.add("active");
-        document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
-      });
-    });
+  // Base URL for API (same origin when opened via FastAPI)
+  const API_BASE = "";
 
-    // ANALYZE (mock wiring; replace with fetch to your FastAPI /analyze)
-    document.getElementById("btn-analyze").addEventListener("click", async () => {
-      const file = document.getElementById("an-file").files[0];
-      const out = document.getElementById("an-json");
-      if (!file) { out.textContent = "Please upload a PDF."; return; }
+  // Tab switching (unchanged)
+  const tabs = document.querySelectorAll(".tab-btn");
+  const panels = document.querySelectorAll(".tab-panel");
+  tabs.forEach(btn => {
+    btn.addEventListener("click", () => {
+      tabs.forEach(b => b.classList.remove("active"));
+      panels.forEach(p => p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+    });
+  });
+
+  // ===== ANALYZE =====
+  document.getElementById("btn-analyze").addEventListener("click", async () => {
+    const file = document.getElementById("an-file").files[0];
+    const out  = document.getElementById("an-json");
+    if (!file) { out.textContent = "Please upload a PDF."; return; }
+
+    try {
       out.textContent = "Running analysis…";
-      // Example wiring:
-      // const fd = new FormData(); fd.append("file", file);
-      // const res = await fetch("/analyze", { method: "POST", body: fd });
-      // const json = await res.json();
-      // out.textContent = JSON.stringify(json, null, 2);
-      // For now, mock:
-      setTimeout(()=> { out.textContent = JSON.stringify({Title:"Demo", Summary:["..."]}, null, 2) }, 800);
-    });
+      const fd = new FormData();
+      fd.append("file", file); // <-- must be 'file' to match FastAPI
 
-    // COMPARE (mock wiring; replace with fetch to /compare)
-    document.getElementById("btn-compare").addEventListener("click", async () => {
-      const ref = document.getElementById("cmp-ref").files[0];
-      const act = document.getElementById("cmp-act").files[0];
-      const tbody = document.querySelector("#cmp-table tbody");
-      if (!ref || !act) { tbody.innerHTML = `<tr><td colspan="2" class="muted center">Upload both PDFs.</td></tr>`; return; }
+      const res = await fetch(`${API_BASE}/analyze`, { method: "POST", body: fd });
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({detail:res.statusText}));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+      const json = await res.json();
+      out.textContent = JSON.stringify(json, null, 2);
+    } catch (e) {
+      out.textContent = "Error: " + (e.message || e);
+    }
+  });
+
+  // ===== COMPARE =====
+  document.getElementById("btn-compare").addEventListener("click", async () => {
+    const ref   = document.getElementById("cmp-ref").files[0];
+    const act   = document.getElementById("cmp-act").files[0];
+    const tbody = document.querySelector("#cmp-table tbody");
+
+    if (!ref || !act) {
+      tbody.innerHTML = `<tr><td colspan="2" class="muted center">Upload both PDFs.</td></tr>`;
+      return;
+    }
+
+    try {
       tbody.innerHTML = `<tr><td colspan="2" class="center">Comparing…</td></tr>`;
-      // Example wiring:
-      // const fd = new FormData(); fd.append("reference", ref); fd.append("actual", act);
-      // const res = await fetch("/compare", { method: "POST", body: fd });
-      // const json = await res.json(); // {rows: [...]}
-      // render rows:
-      // tbody.innerHTML = json.rows.map(r=>`<tr><td>${r.Page ?? ""}</td><td>${r.Changes ?? ""}</td></tr>`).join("");
-      // For now, mock:
-      setTimeout(()=>{
-        const rows = [{Page:1, Changes:"NO CHANGE"}, {Page:2, Changes:"Updated section 2.1"}];
-        tbody.innerHTML = rows.map(r=>`<tr><td>${r.Page}</td><td>${r.Changes}</td></tr>`).join("");
-      }, 800);
-    });
 
-    // CHAT build (mock wiring; replace with fetch to /chat/index)
-    let currentSession = null;
-    document.getElementById("btn-build").addEventListener("click", async () => {
-      const files = document.getElementById("chat-files").files;
-      const sessionId = document.getElementById("chat-session").value.trim();
-      const useSession = document.getElementById("chat-sessionized").checked;
-      const k = +document.getElementById("chat-k").value || 5;
-      const chunk = +document.getElementById("chat-chunk").value || 1000;
-      const overlap = +document.getElementById("chat-overlap").value || 200;
-      const meta = document.getElementById("chat-meta");
-      if (!files.length) { meta.textContent = "Please upload at least one file."; return; }
+      const fd = new FormData();
+      fd.append("reference", ref); // <-- must be 'reference'
+      fd.append("actual", act);    // <-- must be 'actual'
+
+      const res = await fetch(`${API_BASE}/compare`, { method: "POST", body: fd });
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({detail:res.statusText}));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+      const json = await res.json(); // { rows: [...] }
+      const rows = json.rows || [];
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="2" class="muted center">No differences found.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = rows.map(r => {
+        const page = r.Page ?? r.page ?? "";
+        const chg  = r.Changes ?? r.changes ?? "";
+        return `<tr><td>${page}</td><td>${chg}</td></tr>`;
+      }).join("");
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="2" class="muted center">Error: ${e.message || e}</td></tr>`;
+    }
+  });
+
+  // ===== CHAT (index + ask) =====
+  let currentSession = null;
+
+  document.getElementById("btn-build").addEventListener("click", async () => {
+    const files     = document.getElementById("chat-files").files;
+    const sessionId = document.getElementById("chat-session").value.trim();
+    const useSess   = document.getElementById("chat-sessionized").checked;
+    const k         = +document.getElementById("chat-k").value || 5;
+    const chunk     = +document.getElementById("chat-chunk").value || 1000;
+    const overlap   = +document.getElementById("chat-overlap").value || 200;
+    const meta      = document.getElementById("chat-meta");
+
+    if (!files.length) { meta.textContent = "Please upload at least one file."; return; }
+
+    try {
       meta.textContent = "Building index…";
-      // Example wiring:
-      // const fd = new FormData();
-      // [...files].forEach(f => fd.append("files", f));
-      // fd.append("session_id", sessionId);
-      // fd.append("use_session_dirs", useSession ? "true":"false");
-      // fd.append("chunk_size", chunk); fd.append("chunk_overlap", overlap); fd.append("k", k);
-      // const res = await fetch("/chat/index", { method: "POST", body: fd });
-      // const json = await res.json();
-      // currentSession = json.session_id; meta.textContent = `Indexed. session=${currentSession}`;
-      // For mock:
-      setTimeout(()=> { currentSession = sessionId || "session_demo_1234"; meta.textContent = `Indexed (mock). session=${currentSession}`; }, 800);
-    });
 
-    // CHAT ask (mock wiring; replace with fetch to /chat/query)
-    document.getElementById("btn-ask").addEventListener("click", async () => {
-      const q = document.getElementById("chat-q").value.trim();
-      const ans = document.getElementById("chat-answer");
-      const useSession = document.getElementById("chat-sessionized").checked;
-      const k = +document.getElementById("chat-k").value || 5;
-      if (!q) { ans.textContent = "Please enter a question."; return; }
+      const fd = new FormData();
+      [...files].forEach(f => fd.append("files", f)); // <-- must be 'files'
+      if (sessionId) fd.append("session_id", sessionId);
+      fd.append("use_session_dirs", useSess ? "true" : "false");
+      fd.append("chunk_size", String(chunk));
+      fd.append("chunk_overlap", String(overlap));
+      fd.append("k", String(k));
+
+      const res = await fetch(`${API_BASE}/chat/index`, { method: "POST", body: fd });
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({detail:res.statusText}));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+      const json = await res.json(); // { session_id, k, use_session_dirs }
+      currentSession = json.session_id || sessionId || null;
+      meta.textContent = `Indexed. session=${currentSession || "(none)"}, k=${json.k}`;
+    } catch (e) {
+      meta.textContent = "Indexing failed: " + (e.message || e);
+    }
+  });
+
+  document.getElementById("btn-ask").addEventListener("click", async () => {
+    const q        = document.getElementById("chat-q").value.trim();
+    const ans      = document.getElementById("chat-answer");
+    const useSess  = document.getElementById("chat-sessionized").checked;
+    const k        = +document.getElementById("chat-k").value || 5;
+
+    if (!q) { ans.textContent = "Please enter a question."; return; }
+    if (useSess && !currentSession) {
+      ans.textContent = "Build the index first (session-based mode is ON).";
+      return;
+    }
+
+    try {
       ans.textContent = "Thinking…";
-      // Example wiring:
-      // const fd = new FormData();
-      // fd.append("question", q);
-      // fd.append("session_id", currentSession || "");
-      // fd.append("use_session_dirs", useSession ? "true":"false");
-      // fd.append("k", String(k));
-      // const res = await fetch("/chat/query", { method: "POST", body: fd });
-      // const json = await res.json();
-      // ans.textContent = json.answer || "No answer.";
-      // For mock:
-      setTimeout(()=> { ans.textContent = "This is a mock answer. Plug FastAPI to get real RAG response."; }, 800);
-    });
-  </script>
+
+      const fd = new FormData();
+      fd.append("question", q);
+      fd.append("use_session_dirs", useSess ? "true" : "false");
+      fd.append("k", String(k));
+      if (useSess && currentSession) fd.append("session_id", currentSession);
+
+      const res = await fetch(`${API_BASE}/chat/query`, { method: "POST", body: fd });
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({detail:res.statusText}));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+      const json = await res.json(); // { answer, ... }
+      ans.textContent = json.answer || "No answer.";
+    } catch (e) {
+      ans.textContent = "Query failed: " + (e.message || e);
+    }
+  });
+</script>
+
 </body>
 </html>
