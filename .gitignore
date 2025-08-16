@@ -7,3 +7,4 @@ logs/
 *.pyc
 faiss_index/
 main_archive/
+data/
