@@ -37,7 +37,7 @@ jobs:
     - name: Deploy ECR stack (optional)
       run: |
         aws cloudformation deploy \
-          --template-file  infrastructure/template.yml\
+          --template-file  .github/workflows/template.yml\
           --stack-name ecr-repo-stack \
           --region ${{ env.AWS_REGION }} \
           --capabilities CAPABILITY_NAMED_IAM
