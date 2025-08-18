@@ -12,7 +12,7 @@ env:
   ECS_CLUSTER: document-portal-cluster
   ECS_TASK_DEFINITION: .github/workflows/task-definition.json
   CONTAINER_NAME: document-portal-container
-  ImageUrl: 381492214093.dkr.ecr.us-east-1.amazonaws.com/documentportal
+  #ImageUrl: 381492214093.dkr.ecr.us-east-1.amazonaws.com/documentportal
 
 permissions:
   id-token: write
@@ -35,14 +35,7 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
-    - name: Deploy ECR stack (optional)
-      run: |
-        aws cloudformation deploy \
-          --template-file  .github/workflows/template.yml \
-          --stack-name ecr-repo-stack \
-          --region ${{ env.AWS_REGION }} \
-          --capabilities CAPABILITY_NAMED_IAM
-          --ImageUrl: ${{ env.ImageUrl }}
+    
 
     - name: Login to Amazon ECR
       id: login-ecr
@@ -66,6 +59,15 @@ jobs:
         task-definition: ${{ env.ECS_TASK_DEFINITION }}
         container-name: ${{ env.CONTAINER_NAME }}
         image: ${{ steps.build-image.outputs.image }}
+
+    - name: Deploy ECR stack (optional)
+      run: |
+        aws cloudformation deploy \
+          --template-file  .github/workflows/template.yml \
+          --stack-name ecr-repo-stack \
+          --region ${{ env.AWS_REGION }} \
+          --capabilities CAPABILITY_NAMED_IAM
+          --ImageUrl: ${{ steps.build-image.outputs.image }}
 
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
