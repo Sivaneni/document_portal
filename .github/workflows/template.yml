@@ -8,6 +8,7 @@ Parameters:
   Subnet1CIDR:
     Type: String
     Default: 10.0.1.0/24
+  
 
   Subnet2CIDR:
     Type: String
@@ -15,7 +16,10 @@ Parameters:
 
   ImageUrl:
     Type: String
-    Description: ECR Image URI to use for the container
+    Description: The URL of the Docker image to use in the ECS task definition
+    Default: 381492214093.dkr.ecr.us-east-1.amazonaws.com/documentportal
+
+
 
 Resources:
   MyECRRepository:
