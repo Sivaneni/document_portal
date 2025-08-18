@@ -12,7 +12,6 @@ env:
   ECS_CLUSTER: document-portal-cluster
   ECS_TASK_DEFINITION: .github/workflows/task-definition.json
   CONTAINER_NAME: document-portal-container
-  #ImageUrl: 381492214093.dkr.ecr.us-east-1.amazonaws.com/documentportal
 
 permissions:
   id-token: write
@@ -35,7 +34,10 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
-    
+    - name: Ensure ECR repository exists
+      run: |
+        aws ecr describe-repositories --repository-names ${{ env.ECR_REPOSITORY }} --region ${{ env.AWS_REGION }} || \
+        aws ecr create-repository --repository-name ${{ env.ECR_REPOSITORY }} --region ${{ env.AWS_REGION }}
 
     - name: Login to Amazon ECR
       id: login-ecr
@@ -52,6 +54,15 @@ jobs:
         docker push $IMAGE_URI
         echo "image=$IMAGE_URI" >> $GITHUB_OUTPUT
 
+    - name: Deploy ECR stack (optional)
+      run: |
+        aws cloudformation deploy \
+          --template-file .github/workflows/template.yml \
+          --stack-name ecr-repo-stack \
+          --region ${{ env.AWS_REGION }} \
+          --capabilities CAPABILITY_NAMED_IAM \
+          --parameter-overrides ImageUrl=${{ steps.build-image.outputs.image }}
+
     - name: Fill in the new image ID in the Amazon ECS task definition
       id: task-def
       uses: aws-actions/amazon-ecs-render-task-definition@v1
@@ -59,15 +70,6 @@ jobs:
         task-definition: ${{ env.ECS_TASK_DEFINITION }}
         container-name: ${{ env.CONTAINER_NAME }}
         image: ${{ steps.build-image.outputs.image }}
-
-    - name: Deploy ECR stack (optional)
-      run: |
-        aws cloudformation deploy \
-          --template-file  .github/workflows/template.yml \
-          --stack-name ecr-repo-stack \
-          --region ${{ env.AWS_REGION }} \
-          --capabilities CAPABILITY_NAMED_IAM
-          --ImageUrl: ${{ steps.build-image.outputs.image }}
 
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
