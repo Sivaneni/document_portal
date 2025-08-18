@@ -1,4 +1,3 @@
-
 import os
 import sys
 from dotenv import load_dotenv
@@ -9,6 +8,9 @@ from langchain_groq import ChatGroq
 #from langchain_openai import ChatOpenAI
 from logger.custom_logger import CustomLogger
 from exception.custom_exception import DocumentPortalException
+import boto3
+from botocore.exceptions import BotoCoreError, ClientError
+
 log = CustomLogger().get_logger(__name__)
 
 class ModelLoader:
@@ -27,14 +29,34 @@ class ModelLoader:
     def _validate_env(self):
         """
         Validate necessary environment variables.
-        Ensure API keys exist.
+        Ensure API keys exist, pulling from AWS Secrets Manager if needed.
         """
-        required_vars=["GOOGLE_API_KEY","GROQ_API_KEY"]
-        self.api_keys={key:os.getenv(key) for key in required_vars}
+        required_vars = ["GOOGLE_API_KEY", "GROQ_API_KEY"]
+        self.api_keys = {}
+
+        # Try to fetch from environment variables first
+        for key in required_vars:
+            value = os.getenv(key)
+            if value:
+                self.api_keys[key] = value
+            else:
+                # If not found in environment, fetch from AWS Secrets Manager
+                try:
+                    secret_name = key  # Assuming the secret name matches the key
+                    region_name = os.getenv("AWS_REGION", "us-east-1")
+                    client = boto3.client("secretsmanager", region_name=region_name)
+                    secret_value = client.get_secret_value(SecretId=secret_name)
+                    self.api_keys[key] = secret_value["SecretString"]
+                except (BotoCoreError, ClientError) as e:
+                    log.error(f"Failed to fetch {key} from AWS Secrets Manager", error=str(e))
+                    raise DocumentPortalException(f"Missing environment variable or secret: {key}", sys)
+
+        # Check for missing keys
         missing = [k for k, v in self.api_keys.items() if not v]
         if missing:
-            log.error("Missing environment variables", missing_vars=missing)
-            raise DocumentPortalException("Missing environment variables", sys)
+            log.error("Missing environment variables or secrets", missing_vars=missing)
+            raise DocumentPortalException("Missing environment variables or secrets", sys)
+
         log.info("Environment variables validated", available_keys=[k for k in self.api_keys if self.api_keys[k]])
         
     def load_embeddings(self):

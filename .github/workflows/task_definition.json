@@ -32,17 +32,10 @@
           "name": "GROQ_API_KEY",
           "valueFrom": "arn:aws:secretsmanager:us-east-1:381492214093:secret:GROQ_API_KEY-Q8gCEr"
         },
-        {
-          "name": "HF_TOKEN",
-          "valueFrom": "arn:aws:secretsmanager:us-east-1:685057748560:secret:HF_TOKEN"
-        },
+        
         {
           "name": "GOOGLE_API_KEY",
           "valueFrom": "arn:aws:secretsmanager:us-east-1:381492214093:secret:GOOGLE_API_KEY-VrtAf2"
-        },
-        {
-          "name": "LANGCHAIN_API_KEY",
-          "valueFrom": "arn:aws:secretsmanager:us-east-1:685057748560:secret:LANGCHAIN_API_KEY"
         }
       ],
       "logConfiguration": {
