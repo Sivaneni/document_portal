@@ -27,15 +27,6 @@ Parameters:
     Description: Set to "true" to create the ECR repository, "false" to skip creation.
 
 Resources:
-  MyECRRepository:
-    Condition: CreateECRCondition
-    Type: AWS::ECR::Repository
-    Properties:
-      RepositoryName: documentportal
-      ImageScanningConfiguration:
-        scanOnPush: true
-      ImageTagMutability: MUTABLE
-
   MyVPC:
     Type: AWS::EC2::VPC
     Properties:
