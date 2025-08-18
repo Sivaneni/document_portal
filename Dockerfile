@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y build-essential poppler-utils && rm -rf
 # Copy requirements
 COPY requirements.txt .
 
-COPY .env .
+#COPY .env .
 
 # Copy project files
 COPY . .
