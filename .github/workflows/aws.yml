@@ -61,6 +61,7 @@ jobs:
           --stack-name ecr-repo-stack \
           --region ${{ env.AWS_REGION }} \
           --capabilities CAPABILITY_NAMED_IAM \
+          --parameter-overrides CreateECRRepository=false \
           --parameter-overrides ImageUrl=${{ steps.build-image.outputs.image }}
 
     - name: Fill in the new image ID in the Amazon ECS task definition

@@ -17,12 +17,19 @@ Parameters:
   ImageUrl:
     Type: String
     Description: The URL of the Docker image to use in the ECS task definition
-    Default: documentportal
+    Default: 
 
-
+  CreateECRRepository:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Set to "true" to create the ECR repository, "false" to skip creation.
 
 Resources:
   MyECRRepository:
+    Condition: CreateECRCondition
     Type: AWS::ECR::Repository
     Properties:
       RepositoryName: documentportal
@@ -172,3 +179,6 @@ Outputs:
 
   TaskDefinitionArn:
     Value: !Ref ECSTaskDefinition
+
+Conditions:
+  CreateECRCondition: !Equals [!Ref CreateECRRepository, "true"]
