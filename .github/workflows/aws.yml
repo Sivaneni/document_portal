@@ -34,13 +34,8 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
-    - name: Deploy ECR stack (optional)
-      run: |
-        aws cloudformation deploy \
-          --template-file  .github/workflows/template.yml\
-          --stack-name ecr-repo-stack \
-          --region ${{ env.AWS_REGION }} \
-          --capabilities CAPABILITY_NAMED_IAM
+    
+          
 
     - name: Login to Amazon ECR
       id: login-ecr
@@ -56,6 +51,15 @@ jobs:
         docker build -t $IMAGE_URI .
         docker push $IMAGE_URI
         echo "image=$IMAGE_URI" >> $GITHUB_OUTPUT
+
+    - name: Deploy ECR stack (optional)
+      run: |
+        aws cloudformation deploy \
+          --template-file  .github/workflows/template.yml\
+          --stack-name ecr-repo-stack \
+          --region ${{ env.AWS_REGION }} \
+          --capabilities CAPABILITY_NAMED_IAM
+          --parameter-overrides ImageUrl=${{ steps.build-image.outputs.image }}
 
     - name: Fill in the new image ID in the Amazon ECS task definition
       id: task-def
