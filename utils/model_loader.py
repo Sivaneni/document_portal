@@ -81,7 +81,9 @@ class ModelLoader:
             log.info("Loading embedding model...")
             model_name = self.config["embedding_model"]["model_name"]
             print(f"Loading embedding model: {model_name}")
-            return GoogleGenerativeAIEmbeddings(model=model_name)
+            return GoogleGenerativeAIEmbeddings(model=model_name,
+                                                google_api_key=self.api_keys["GOOGLE_API_KEY"]
+                                                )
         except Exception as e:
             log.error("Error loading embedding model", error=str(e))
             raise DocumentPortalException("Failed to load embedding model", sys)
@@ -143,9 +145,9 @@ if __name__ == "__main__":
     
     # Test embedding model loading
     embeddings = loader.load_embeddings()
-   #print(f"Embedding Model Loaded: {embeddings}")
-    #result=embeddings.embed_query("Hello, how are you?")
-    #print(f"Embedding Result: {result}...")  # Print first 5 dimensions of the embedding
+    print(f"Embedding Model Loaded: {embeddings}")
+    result=embeddings.embed_query("Hello, how are you?")
+    print(f"Embedding Result: {result}...")  # Print first 5 dimensions of the embedding
     
     # Test LLM loading based on YAML config
     llm = loader.load_llm()
