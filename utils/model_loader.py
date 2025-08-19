@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 from dotenv import load_dotenv
 from utils.config_loader import load_config
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
@@ -46,7 +47,11 @@ class ModelLoader:
                     region_name = os.getenv("AWS_REGION", "us-east-1")
                     client = boto3.client("secretsmanager", region_name=region_name)
                     secret_value = client.get_secret_value(SecretId=secret_name)
-                    self.api_keys[key] = secret_value["SecretString"]
+                    secret_string = secret_value["SecretString"]
+                    parsed = json.loads(secret_string)
+                    self.api_keys[key] = parsed.get(key)
+
+
                     
 
                 except (BotoCoreError, ClientError) as e:
