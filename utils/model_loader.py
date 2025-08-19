@@ -47,6 +47,8 @@ class ModelLoader:
                     client = boto3.client("secretsmanager", region_name=region_name)
                     secret_value = client.get_secret_value(SecretId=secret_name)
                     self.api_keys[key] = secret_value["SecretString"]
+                    
+
                 except (BotoCoreError, ClientError) as e:
                     log.error(f"Failed to fetch {key} from AWS Secrets Manager", error=str(e))
                     raise DocumentPortalException(f"Missing environment variable or secret: {key}", sys)
@@ -93,7 +95,7 @@ class ModelLoader:
         max_tokens = llm_config.get("max_output_tokens", 2048)
         
         log.info("Loading LLM", provider=provider, model=model_name, temperature=temperature, max_tokens=max_tokens)
-
+        log.info("Loaded GROQ_API_KEY", snippet=self.api_keys["GROQ_API_KEY"])
         if provider == "google":
             llm=ChatGoogleGenerativeAI(
                 model=model_name,
