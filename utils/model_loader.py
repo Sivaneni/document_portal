@@ -39,7 +39,11 @@ class ModelLoader:
         for key in required_vars:
             value = os.getenv(key)
             if value:
-                self.api_keys[key] = value
+                secret_dict = json.loads(value)
+
+                
+                self.api_keys[key] = secret_dict.get(key)
+                log.info(f"Loaded {key} from environment variable from ECS container envs", value=self.api_keys[key])
             else:
                 # If not found in environment, fetch from AWS Secrets Manager
                 try:
