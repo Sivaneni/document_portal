@@ -50,7 +50,7 @@ class ModelLoader:
                     secret_string = secret_value["SecretString"]
                     parsed = json.loads(secret_string)
                     self.api_keys[key] = parsed.get(key)
-                    log.info(f"Fetched {key} from AWS Secrets  with value: {self.api_keys[key]}")
+                    log.info(" fetching {key} from AWS Secrets  with value: {self.api_keys[key]}")
 
 
                     
