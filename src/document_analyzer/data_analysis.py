@@ -42,6 +42,7 @@ class DocumentAnalyzer:
             chain = self.prompt | self.llm | self.fixing_parser
             
             self.log.info("Meta-data analysis chain initialized")
+            self.log.info("groq_api_key", snippet=self.loader.api_keys["GROQ_API_KEY"])
 
             response = chain.invoke({
                 "format_instructions": self.parser.get_format_instructions(),
@@ -55,5 +56,12 @@ class DocumentAnalyzer:
         except Exception as e:
             self.log.error("Metadata analysis failed", error=str(e))
             raise DocumentPortalException("Metadata extraction failed",sys)
+        
+if __name__ == "__main__":
+    # Example usage
+    analyzer = DocumentAnalyzer()
+    document_text = "This is a sample document text."
+    metadata = analyzer.analyze_document(document_text)
+    print(metadata)
         
     

@@ -51,6 +51,7 @@ class ModelLoader:
                     secret_string = secret_value["SecretString"]
                     parsed = json.loads(secret_string)
                     self.api_keys[key] = parsed.get(key)
+                    log.info(f"Fetched {key} from AWS Secrets Manager", value=self.api_keys[key])
                     #print(f" fetching {secret_name} from AWS Secrets  with value: {self.api_keys[key]}")
 
 
@@ -103,7 +104,7 @@ class ModelLoader:
         max_tokens = llm_config.get("max_output_tokens", 2048)
         
         log.info("Loading LLM", provider=provider, model=model_name, temperature=temperature, max_tokens=max_tokens)
-        #log.info("Loaded GROQ_API_KEY", snippet=self.api_keys["GROQ_API_KEY"])
+        log.info("Loaded GROQ_API_KEY", snippet=self.api_keys["GROQ_API_KEY"])
         if provider == "google":
             llm=ChatGoogleGenerativeAI(
                 model=model_name,
