@@ -43,6 +43,7 @@ class ModelLoader:
             else:
                 # If not found in environment, fetch from AWS Secrets Manager
                 try:
+                    #print(f" fetching {key} from AWS Secrets")
                     secret_name = key  # Assuming the secret name matches the key
                     region_name = os.getenv("AWS_REGION", "us-east-1")
                     client = boto3.client("secretsmanager", region_name=region_name)
@@ -50,7 +51,7 @@ class ModelLoader:
                     secret_string = secret_value["SecretString"]
                     parsed = json.loads(secret_string)
                     self.api_keys[key] = parsed.get(key)
-                    log.info(" fetching {key} from AWS Secrets  with value: {self.api_keys[key]}")
+                    #print(f" fetching {secret_name} from AWS Secrets  with value: {self.api_keys[key]}")
 
 
                     
@@ -74,6 +75,7 @@ class ModelLoader:
         try:
             log.info("Loading embedding model...")
             model_name = self.config["embedding_model"]["model_name"]
+            print(f"Loading embedding model: {model_name}")
             return GoogleGenerativeAIEmbeddings(model=model_name)
         except Exception as e:
             log.error("Error loading embedding model", error=str(e))
@@ -101,7 +103,7 @@ class ModelLoader:
         max_tokens = llm_config.get("max_output_tokens", 2048)
         
         log.info("Loading LLM", provider=provider, model=model_name, temperature=temperature, max_tokens=max_tokens)
-        log.info("Loaded GROQ_API_KEY", snippet=self.api_keys["GROQ_API_KEY"])
+        #log.info("Loaded GROQ_API_KEY", snippet=self.api_keys["GROQ_API_KEY"])
         if provider == "google":
             llm=ChatGoogleGenerativeAI(
                 model=model_name,
@@ -136,9 +138,9 @@ if __name__ == "__main__":
     
     # Test embedding model loading
     embeddings = loader.load_embeddings()
-    print(f"Embedding Model Loaded: {embeddings}")
-    result=embeddings.embed_query("Hello, how are you?")
-    print(f"Embedding Result: {result}...")  # Print first 5 dimensions of the embedding
+   #print(f"Embedding Model Loaded: {embeddings}")
+    #result=embeddings.embed_query("Hello, how are you?")
+    #print(f"Embedding Result: {result}...")  # Print first 5 dimensions of the embedding
     
     # Test LLM loading based on YAML config
     llm = loader.load_llm()
